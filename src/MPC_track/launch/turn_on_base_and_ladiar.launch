@@ -1,0 +1,8 @@
+<launch>
+ <!-- 开启机器人底层相关节点  -->
+ <include file="$(find turn_on_dlrobot_robot)/launch/turn_on_dlrobot_robot_no_ekf.launch" />
+
+ <!-- turn on lidar开启杉川雷达  -->
+ <include file="$(find ltme_node)/launch/ltme02a.launch" />
+
+</launch>

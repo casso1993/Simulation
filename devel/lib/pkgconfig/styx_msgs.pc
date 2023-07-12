@@ -1,8 +1,0 @@
-prefix=/home/casso/test4_ws/devel
-
-Name: styx_msgs
-Description: Description of styx_msgs
-Version: 0.0.0
-Cflags: -I/home/casso/test4_ws/devel/include
-Libs: -L${prefix}/lib 
-Requires: 

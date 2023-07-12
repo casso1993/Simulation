@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="MPC_track" type="MPC" name="MPC" output="screen"/>
+  <node pkg="MPC_track" type="mpc_optimizer.py" name="MPC_optimizer" output="screen"/>
+</launch>
+

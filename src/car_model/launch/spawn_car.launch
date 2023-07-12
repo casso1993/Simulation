@@ -16,4 +16,7 @@
     <arg name="config_file" value="smart_control_config.yaml"/>
   </include>
 
+	<include file="$(find waypoint_loader)/launch/waypoint_loader.launch"/>
+  <include file="$(find waypoint_updater)/launch/waypoint_updater.launch"/>
+
 </launch>

@@ -15,10 +15,8 @@
       <remap from="/joint_states" to="/$(arg robot_name)/joint_states" />
   </node>
 
-  <node name="cmdvel2gazebo" pkg="car_model" type="cmdvel2gazebo.py" respawn="true" output="screen"/>
-
-  <node name="vehicle_pose_and_velocity_updater" pkg="car_model" type="vehicle_pose_and_velocity_updater.py" respawn="true" output="screen"/>
-
-  <node name="transform_publisher" pkg="car_model" type="transform_publisher.py" respawn="true" output="screen"/>
+  <node name="cmdvel2gazebo" pkg="car_model" type="cmdvel2gazebo" respawn="false" output="screen"/>
+  <node name="vehicle_pose_and_velocity_updater" pkg="car_model" type="vehicle_pose_and_velocity_updater" respawn="false" output="screen"/>
+  <node name="transform_publisher" pkg="car_model" type="transform_publisher" respawn="false" output="screen"/>
 
 </launch>
