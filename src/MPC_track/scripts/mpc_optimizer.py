@@ -102,6 +102,12 @@ def callback(req):
 
         i += 1
 
+    # print("state_reference")
+    # print(state_reference)
+    # print("control_reference")
+    # print(control_reference)
+
+
     # 向优化函数传参解算
     v, kesi, opt_x, opt_y, opt_yaw, time = mpc_optimize_function(
         car_state, state_reference, control_reference)
@@ -132,7 +138,7 @@ if __name__ == "__main__":
     freq = 20
     L = 1.868
     MAX_VEL_delta = 0.2
-    MAX_ANGULAR_delta = 1.5
+    MAX_ANGULAR_delta = 0.25
     MAX_DSTEER = 34.4
     MAX_DSTEER = np.deg2rad(MAX_DSTEER)
     R_set = [0.1, 0.1]

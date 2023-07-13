@@ -99,11 +99,11 @@ void MPC::mpc_optimize(const styx_msgs::Lane state_reference, const vector<geome
     control.kesi = srv.response.opt_control.angular.z;
     state_prediction = srv.response.state_pre;
     solve_time = srv.response.solve_time;
-    ROS_INFO("optimization solve time is %fs", solve_time);
+    // ROS_INFO("optimization solve time is %fs", solve_time);
   }
   else
   {
-    ROS_ERROR("can't connect to optimization!");
+    // ROS_ERROR("can't connect to optimization!");
     control.v = control.kesi = 0;
     state_prediction.clear();
     solve_time = 0;
@@ -123,6 +123,7 @@ geometry_msgs::Twist MPC::calculateTwistCommand()
 
   vector<geometry_msgs::Twist> control_reference = get_control_reference(currentIndex);
 
+  // cout << "currentIndex: " << currentIndex << endl;
   mpc_optimize(state_reference, control_reference);
 
   twistCmd.linear.x = control.v;

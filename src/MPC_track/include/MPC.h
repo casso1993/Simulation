@@ -16,9 +16,7 @@
 using namespace std;
 
 #define HORIZON 20
-#define k 0.2
 #define L 1.868
-#define T 1.284
 
 class MPC
 {
