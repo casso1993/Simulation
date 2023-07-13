@@ -5,7 +5,6 @@ import cvxpy
 import rospy
 from MPC_track.srv import *
 from geometry_msgs.msg import *
-from MPC_track.msg import *
 import math
 import time
 import tf

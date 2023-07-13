@@ -58,11 +58,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  control.msg
-  # Message2.msg
-)
+# add_message_files(
+#   FILES
+#   control.msg
+#   # Message2.msg
+# )
 
 ## Generate services in the 'srv' folder
 add_service_files(
@@ -134,8 +134,6 @@ include_directories(
 add_library(MPC_LIBRARIES
   /home/casso/test_ws/src/MPC_track/include/mpc_track/Tool.h
   /home/casso/test_ws/src/MPC_track/src/Tool.cpp
-  /home/casso/test_ws/src/MPC_track/include/mpc_track/trajectory.h
-  /home/casso/test_ws/src/MPC_track/src/trajectory.cpp
 )
 
 target_link_libraries(MPC_LIBRARIES ${catkin_LIBRARIES})
