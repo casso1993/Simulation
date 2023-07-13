@@ -27,13 +27,15 @@ def state_space(control_ref, ref_yaw):
     B = np.matrix([
         [dt * math.cos(ref_yaw), 0],
         [dt * math.sin(ref_yaw), 0],
-        [dt * math.tan(ref_delta), v_d * dt / (L * math.cos(ref_delta) * math.cos(ref_delta))]
+        [dt * math.tan(ref_delta), v_d * dt /
+         (L * math.cos(ref_delta) * math.cos(ref_delta))]
     ])
     return A, B
 
 
 def mpc_optimize_function(car_state, state_reference, control_reference):
-    dsteer_limit = min(abs(math.atan(MAX_ANGULAR_delta*L/(control_reference[0, 0] + MAX_VEL_delta))), MAX_DSTEER)
+    dsteer_limit = min(abs(math.atan(MAX_ANGULAR_delta*L /
+                       (control_reference[0, 0] + MAX_VEL_delta))), MAX_DSTEER)
     # print(dsteer_limit)
     x = cvxpy.Variable((3, prediction_horizon + 1))
     u = cvxpy.Variable((2, prediction_horizon))
@@ -49,7 +51,8 @@ def mpc_optimize_function(car_state, state_reference, control_reference):
         # X成本函数
         cost += cvxpy.quad_form(x[:, t] - state_reference[:, t], Q)
         # 状态方程约束
-        constraints += [x[:, t + 1] - state_reference[:, t] == A @ (x[:, t] - state_reference[:, t]) + B @ u[:, t]]
+        constraints += [x[:, t + 1] - state_reference[:, t] ==
+                        A @ (x[:, t] - state_reference[:, t]) + B @ u[:, t]]
         t += 1
 
     # print("no problem2")
@@ -78,6 +81,7 @@ def mpc_optimize_function(car_state, state_reference, control_reference):
     opt_kesi = opt_kesi_dd[0] + control_reference[1, 0]
     return opt_v, opt_kesi, opt_x, opt_y, opt_yaw, solve_time
 
+
 def callback(req):
     # 数据预处理
     state_reference = np.zeros((3, prediction_horizon))
@@ -90,15 +94,17 @@ def callback(req):
     while i < len(req.state_ref.waypoints):
         state_reference[0, i] = req.state_ref.waypoints[i].pose.pose.position.x
         state_reference[1, i] = req.state_ref.waypoints[i].pose.pose.position.y
-        (roll,pitch,yaw)=tf.transformations.euler_from_quaternion([req.state_ref.waypoints[i].pose.pose.orientation.x, req.state_ref.waypoints[i].pose.pose.orientation.y, req.state_ref.waypoints[i].pose.pose.orientation.z, req.state_ref.waypoints[i].pose.pose.orientation.w])
+        (roll, pitch, yaw) = tf.transformations.euler_from_quaternion([req.state_ref.waypoints[i].pose.pose.orientation.x, req.state_ref.waypoints[
+            i].pose.pose.orientation.y, req.state_ref.waypoints[i].pose.pose.orientation.z, req.state_ref.waypoints[i].pose.pose.orientation.w])
         state_reference[2, i] = yaw
         control_reference[0, i] = req.control_ref[i].linear.x
         control_reference[1, i] = req.control_ref[i].angular.z
+
         i += 1
 
-
     # 向优化函数传参解算
-    v, kesi, opt_x, opt_y, opt_yaw, time = mpc_optimize_function(car_state, state_reference, control_reference)
+    v, kesi, opt_x, opt_y, opt_yaw, time = mpc_optimize_function(
+        car_state, state_reference, control_reference)
 
     # print(opt_yaw)
 
@@ -126,16 +132,13 @@ if __name__ == "__main__":
     freq = 20
     L = 1.868
     MAX_VEL_delta = 0.2
-    # MAX_ANGULAR_delta = 1.5
-    MAX_ANGULAR_delta = 0.6
-    MAX_DSTEER = 45
+    MAX_ANGULAR_delta = 1.5
+    MAX_DSTEER = 34.4
     MAX_DSTEER = np.deg2rad(MAX_DSTEER)
-    R_set = [0.1,0.1]
-    Q_set = [100,100,10]
+    R_set = [0.1, 0.1]
+    Q_set = [100, 100, 10]
     dt = 1/freq
     Q = np.diag(Q_set)  # state cost matrix
     R = np.diag(R_set)  # input cost matrix
     rospy.loginfo("ready to optimize")
     rospy.spin()
-
-

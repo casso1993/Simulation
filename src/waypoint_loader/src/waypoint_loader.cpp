@@ -106,6 +106,7 @@ int waypoint_loader::process()
     pose1.position.y = pose[1];
     pose1.position.z = 0;
 
+    pose3.header.seq = count;
     pose3.pose.pose.position.x = pose[0];
     pose3.pose.pose.position.y = pose[1];
     pose3.pose.pose.position.z = 0;

@@ -7,7 +7,12 @@ project(MPC_track)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+# set (CMAKE_CXX_STANDARD 14)
+
+set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl/")
+
 find_package(catkin REQUIRED COMPONENTS
+  PCL
   geometry_msgs
   roscpp
   rospy
@@ -111,7 +116,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES MPC_track
-    CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs styx_msgs tf tf2 message_runtime
+  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs styx_msgs tf tf2 message_runtime
 #  DEPENDS system_lib
 )
 
@@ -220,6 +225,13 @@ target_link_libraries(MPC_LIBRARIES ${catkin_LIBRARIES})
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
+
+
 add_executable(MPC src/MPC.cpp)
 add_dependencies(MPC ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(MPC ${catkin_LIBRARIES} MPC_LIBRARIES)
+
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+target_link_libraries (MPC ${PCL_LIBRARIES})

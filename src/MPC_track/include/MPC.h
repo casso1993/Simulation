@@ -35,15 +35,15 @@ private:
   void lane_cb(const styx_msgs::Lane &data3);
   void global_waypoint_cb(const styx_msgs::Lane &data4);
   geometry_msgs::Twist calculateTwistCommand();
+  int Find_target_index();
+  styx_msgs::Lane get_local_path(int index);
+  styx_msgs::Lane get_state_reference(int index);
+  vector<geometry_msgs::Twist> get_control_reference(int index);
   void mpc_optimize(const styx_msgs::Lane currentWaypoints, const vector<geometry_msgs::Twist> control_reference);
-  vector<geometry_msgs::Twist> get_control_reference(int index, double distance);
+
   double CurrentRoll, CurrentPitch, CurrentYaw;
   U control;
   vector<geometry_msgs::Pose2D> state_prediction;
-  int final_targetX = 0;
-  int final_targetY = 4;
-  int flag = 0;
-  int flag_alpha = 0;
 
 public:
   MPC();

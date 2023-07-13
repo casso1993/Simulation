@@ -1,22 +1,108 @@
 #include "MPC.h"
 
-void MPC::mpc_optimize(const styx_msgs::Lane currentWaypoints, const vector<geometry_msgs::Twist> control_reference){
+int MPC::Find_target_index()
+{
+  double min = abs(sqrt(pow(currentPose.pose.position.x - globalWaypoints.waypoints[0].pose.pose.position.x, 2) + pow(currentPose.pose.position.y - globalWaypoints.waypoints[0].pose.pose.position.y, 2)));
+  int index = 0;
+  for (int i = 0; i < globalWaypoints.waypoints.size(); i++)
+  {
+    double d = abs(sqrt(pow(currentPose.pose.position.x - globalWaypoints.waypoints[i].pose.pose.position.x, 2) + pow(currentPose.pose.position.y - globalWaypoints.waypoints[i].pose.pose.position.y, 2)));
+    if (d < min)
+    {
+      min = d;
+      index = i;
+    }
+  }
+
+  // 索引到终点前，当（机器人与下一个目标点的距离Lf）小于（当前目标点到下一个目标点距离L)时，索引下一个目标点
+  if ((index + 1) < globalWaypoints.waypoints.size())
+  {
+    double current_x = globalWaypoints.waypoints[index].pose.pose.position.x;
+    double current_y = globalWaypoints.waypoints[index].pose.pose.position.y;
+    double next_x = globalWaypoints.waypoints[index + 1].pose.pose.position.x;
+    double next_y = globalWaypoints.waypoints[index + 1].pose.pose.position.y;
+    double L_ = abs(sqrt(pow(next_x - current_x, 2) + pow(next_y - current_y, 2)));
+    double L_1 = abs(sqrt(pow(currentPose.pose.position.x - next_x, 2) + pow(currentPose.pose.position.y - next_y, 2)));
+    // ROS_INFO("L is %f,Lf is %f",L,Lf);
+    if (L_1 < L_)
+    {
+      index += 1;
+    }
+  }
+  return index;
+}
+
+styx_msgs::Lane MPC::get_local_path(int index)
+{
+  styx_msgs::Lane local_path;
+  int num = globalWaypoints.waypoints.size();
+  // ROS_INFO("%d", num);
+  for (int i = 0; i < HORIZON; i++)
+  {
+    if (index + i < num)
+    {
+      local_path.waypoints.push_back(globalWaypoints.waypoints[index + i]);
+    }
+    else
+    {
+      local_path.waypoints.push_back(globalWaypoints.waypoints[num - 1]);
+    }
+  }
+  return local_path;
+}
+
+styx_msgs::Lane MPC::get_state_reference(int index)
+{
+  styx_msgs::Lane local_path = get_local_path(index);
+  return local_path;
+}
+
+// //参考控制量获取函数
+vector<geometry_msgs::Twist> MPC::get_control_reference(int index)
+{
+  vector<geometry_msgs::Twist> control_reference;
+  styx_msgs::Lane local_path = get_local_path(index);
+
+  for (int i = 0; i < local_path.waypoints.size(); i++)
+  {
+    geometry_msgs::Twist tmp;
+    tmp.linear.x = local_path.waypoints[i].twist.twist.linear.x;
+
+    // 接着计算对应的前轮转角参考量
+
+    double K = cal_K(globalWaypoints, currentWaypoints.waypoints[i].header.seq); // 计算曲率
+
+    tmp.angular.z = atan2(L * K, 1);
+
+    control_reference.push_back(tmp);
+  }
+  // ROS_INFO("control_reference length is %d",control_reference.size());
+  return control_reference;
+}
+
+void MPC::mpc_optimize(const styx_msgs::Lane state_reference, const vector<geometry_msgs::Twist> control_reference)
+{
   double solve_time;
-  
+
   MPC_track::mpc_srv srv;
-  srv.request.state_ref = currentWaypoints;
+  srv.request.state_ref = state_reference;
   srv.request.control_ref = control_reference;
   geometry_msgs::Pose2D position;
-  position.x = currentPose.pose.position.x; position.y = currentPose.pose.position.y; position.theta = CurrentYaw;
+  position.x = currentPose.pose.position.x;
+  position.y = currentPose.pose.position.y;
+  position.theta = CurrentYaw;
+
   srv.request.state = position;
-  if(mpc_optimization.call(srv)){
+  if (mpc_optimization.call(srv))
+  {
     control.v = srv.response.opt_control.linear.x;
     control.kesi = srv.response.opt_control.angular.z;
     state_prediction = srv.response.state_pre;
     solve_time = srv.response.solve_time;
     ROS_INFO("optimization solve time is %fs", solve_time);
   }
-  else{
+  else
+  {
     ROS_ERROR("can't connect to optimization!");
     control.v = control.kesi = 0;
     state_prediction.clear();
@@ -24,99 +110,34 @@ void MPC::mpc_optimize(const styx_msgs::Lane currentWaypoints, const vector<geom
   }
 }
 
-
-// //参考控制量获取函数
-vector<geometry_msgs::Twist> MPC::get_control_reference(int index, double distance){
-  vector<geometry_msgs::Twist> control_reference;
-  // vector<waypoint> local_path = path->get_local_path(index);  current_waypints = local path
-  for (int i = 0; i < currentWaypoints.waypoints.size();i++){
-    geometry_msgs::Twist tmp;
-    tmp.linear.x = currentWaypoints.waypoints[i].twist.twist.linear.x;
-
-    //接着计算对应的前轮转角参考量
-    double K = cal_K(globalWaypoints,index+i);//计算曲率  ?????是否index+i？？？？
-
-    tmp.angular.z = atan2(L * K, 1);
-
-    control_reference.push_back(tmp);
-
-    //ROS_INFO("the v_desired is %f\nthe kesi_desired is %f\n",uu.v, uu.kesi);
-  }
-  //ROS_INFO("control_reference length is %d",control_reference.size());
-  return control_reference;
-}
-
 geometry_msgs::Twist MPC::calculateTwistCommand()
 {
-  double lad = 0.0;
-  int targetIndex = currentWaypoints.waypoints.size() - 1;
-  int currentIndex = 0;
-  for (int i = 0; i < currentWaypoints.waypoints.size(); i++)
-  {
-    if (i + 1 < currentWaypoints.waypoints.size())
-    {
-      double this_x = currentWaypoints.waypoints[i].pose.pose.position.x;
-      double this_y = currentWaypoints.waypoints[i].pose.pose.position.y;
-      double next_x = currentWaypoints.waypoints[i + 1].pose.pose.position.x;
-      double next_y = currentWaypoints.waypoints[i + 1].pose.pose.position.y;
-      lad = lad + hypot(next_x - this_x, next_y - this_y);
-      if (lad > HORIZON)
-      {
-        targetIndex = i + 1;
-        currentIndex = i+1;
-        break;
-      }
-    }
-  }
-
-  cout << "targetIndex: " << targetIndex << endl;
-  cout << "currentIndex: " << currentIndex << endl;
-
   geometry_msgs::Twist twistCmd;
-  styx_msgs::Waypoint targetWaypoint;
-  //target: 预测的点， current：现在的点
-  double targetSpeed, targetX, targetY, currentX, currentY;
-  targetWaypoint = currentWaypoints.waypoints[targetIndex];
-  targetSpeed = currentWaypoints.waypoints[0].twist.twist.linear.x;
-  targetX = targetWaypoint.pose.pose.position.x;
-  targetY = targetWaypoint.pose.pose.position.y;
-  currentX = currentPose.pose.position.x;
-  currentY = currentPose.pose.position.y;
-
-  /*********************************************
-  TargetYaw: 获取该局部路径点对应的目标航向角
-  CurrentYaw: 获取小车当前的航向角
-  *********************************************/
-  tf::Quaternion waypoint_quanternion(targetWaypoint.pose.pose.orientation.x, targetWaypoint.pose.pose.orientation.y,
-                                      targetWaypoint.pose.pose.orientation.z, targetWaypoint.pose.pose.orientation.w);
-  double TargetRoll, TargetPitch, TargetYaw;
-  tf::Matrix3x3(waypoint_quanternion).getRPY(TargetRoll, TargetPitch, TargetYaw);
+  int currentIndex = Find_target_index();
 
   tf::Quaternion quanternion(currentPose.pose.orientation.x, currentPose.pose.orientation.y,
                              currentPose.pose.orientation.z, currentPose.pose.orientation.w);
   tf::Matrix3x3(quanternion).getRPY(CurrentRoll, CurrentPitch, CurrentYaw);
 
-  double v_distance = abs(sqrt(pow(currentX - targetX, 2) + pow(currentY - targetY, 2)));
-  ROS_INFO("the distance is %f", v_distance);
+  styx_msgs::Lane state_reference = get_state_reference(currentIndex);
 
-  vector<geometry_msgs::Twist> control_reference = get_control_reference(currentIndex, v_distance);
+  vector<geometry_msgs::Twist> control_reference = get_control_reference(currentIndex);
 
-  mpc_optimize(currentWaypoints, control_reference);
+  mpc_optimize(state_reference, control_reference);
 
   twistCmd.linear.x = control.v;
-  cout << "twistCmd.angular.x: " << twistCmd.angular.x << endl;
   twistCmd.angular.z = control.v * tan(control.kesi) / L;
-  cout << "twistCmd.angular.z: " << twistCmd.angular.z << endl;
 
   return twistCmd;
 }
 
 void MPC::process()
 {
+  ros::Rate rate(20);
   while (ros::ok())
   {
     ros::spinOnce();
-    if(globalWaypoints.waypoints.size()!=0)
+    if (globalWaypoints.waypoints.size() != 0)
     {
       if (currentWaypoints.waypoints.size() != 0)
       {
@@ -124,22 +145,23 @@ void MPC::process()
         cmd_vel.publish(twistCommand);
       }
     }
+    rate.sleep();
   }
 }
 
 void MPC::pose_cb(const geometry_msgs::PoseStamped &data1)
 {
-  currentPose = data1; //由gazebo获得POSE
+  currentPose = data1; // 由gazebo获得POSE
 }
 
 void MPC::vel_cb(const geometry_msgs::TwistStamped &data2)
 {
-  currentVelocity = data2; //由gazebo获得TWIST
+  currentVelocity = data2; // 由gazebo获得TWIST
 }
 
 void MPC::lane_cb(const styx_msgs::Lane &data3)
 {
-  currentWaypoints = data3; //前视20点组成都waypoint path
+  currentWaypoints = data3; // 前视20点组成都waypoint path
 }
 
 void MPC::global_waypoint_cb(const styx_msgs::Lane &data4)
