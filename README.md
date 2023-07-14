@@ -1,6 +1,6 @@
 # Simulation
 
-## This code is used for pure persuit and stanley method simulation in ROS gazebo; 
+## This code is used for pure persuit， stanley method and MPC(Model Predictive Control) simulation in ROS gazebo; 
 ### 0.catkin_make
 catkin_make -DCATKIN_WHITELIST_PACKAGES="styx_msgs"
 
