@@ -23,5 +23,5 @@ roslaunch pure_persuit pure_persuit.launch
 ### 4_2.run stanley method
 roslaunch stanley_persuit stanley_persuit.launch
 
-### 4_3.run MPC
+### 4_3.run MPC（undone）
 roslaunch MPC_track MPC_track.launch
